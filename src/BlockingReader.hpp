@@ -9,9 +9,9 @@
 #include <boost/thread.hpp>
 #include <boost/thread/future.hpp>
 
-using boost::shared_future;
+using boost::future;
 
 template<class T> struct BlockingReader {
-  virtual shared_future<T> next() = 0;
+  virtual future<T> next() = 0;
 };
 

@@ -20,7 +20,6 @@ template<class T> struct BlockingQueue : public BlockingReader<optional<vector<T
     wakeup(),
     waiting(false),
     buffer(typename circular_buffer_space_optimized<T>::capacity_type { maxSize, minSize }),
-    waitingFuture(),
     closed(false)
   {
   }
@@ -34,7 +33,6 @@ template<class T> struct BlockingQueue : public BlockingReader<optional<vector<T
     closed = true;
     if (waiting) {
       wakeup.set_value();
-      wakeup = promise<void>();
       waiting = false;
     }
   }
@@ -45,12 +43,11 @@ template<class T> struct BlockingQueue : public BlockingReader<optional<vector<T
     
     if (waiting) {
       wakeup.set_value();
-      wakeup = promise<void>();
       waiting = false;
     }
   }
   
-  shared_future<optional<vector<T>>> next() {
+  future<optional<vector<T>>> next() {
     unique_lock<mutex> _(lock);
     
     if (buffer.size() != 0) {
@@ -61,18 +58,12 @@ template<class T> struct BlockingQueue : public BlockingReader<optional<vector<T
         return make_ready_future(optional<vector<T>>());
       }
       else {
-        if (!waiting) {
-          shared_future<void> onWakeup = wakeup.get_future();
-          waitingFuture = onWakeup.then([this](shared_future<void> _f) {
-            unique_lock<mutex> _(lock);
-            return optional<vector<int>>(drain());
-          });
-        }
-        
-        // Arm the event!
         waiting = true;
-
-        return waitingFuture;
+        wakeup = promise<void>();
+        return wakeup.get_future().then([this](future<void> _f) {
+          unique_lock<mutex> _(lock);
+          return optional<vector<int>>(drain());
+        });
       }
     }
   }
@@ -94,7 +85,6 @@ template<class T> struct BlockingQueue : public BlockingReader<optional<vector<T
     promise<void> wakeup;
     bool waiting;
     circular_buffer_space_optimized<T> buffer;
-    shared_future<optional<vector<int>>> waitingFuture;
     bool closed;
 };
 
