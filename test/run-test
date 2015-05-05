@@ -1,0 +1,31 @@
+#!/usr/bin/env python
+
+from scooter import *
+from scooter.gcc import build_gcc
+
+here = p(__file__).dir
+
+@build_main(here)
+def _(b, test_source):
+    sources = here/'../src'//'**'//'*.cpp' + (p(test_source),)
+    bin = b.mkobj((p(test_source),), '')
+    include = (
+        '-I../src',
+    )
+    opts = ('-fPIC', '-g', '-O0', '-fdiagnostics-color=always', '-Wall', '-Wno-unused', '-Werror', '-std=c++11', include)
+    
+    libs = ( 
+        '-lboost_system',
+        '-lboost_chrono',
+        '-lboost_thread',
+        '-lboost_filesystem',
+        '-lboost_timer',
+        
+        '-lpthread',
+    )
+    
+    build_gcc(b, sources, bin, opts, gcc='g++', libs=libs)
+    
+    easyruntty(bin)
+
+

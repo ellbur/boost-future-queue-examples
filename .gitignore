@@ -1,0 +1,3 @@
+*.pyc
+.objcache
+.buildcache
